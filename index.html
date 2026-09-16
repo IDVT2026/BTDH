@@ -53,10 +53,7 @@
   <div id="firstClickOverlay" class="click-capture-overlay"></div>
 
   <script>
-    const baseUrl = 'https://script.google.com/macros/s/AKfycbzLPZpRtHGBJZhGVKuQPCxQYx5K0uxmgd-RcHqnsoOFUvz-oCQvt1qSNythOfJWy8Y/exec';
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-    const iframe = document.getElementById('launcherIframe');
-    iframe.src = isMobile ? baseUrl + '?mode=mobile' : baseUrl;
+    const baseUrl = 'https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec';
 
     const btn = document.getElementById('externalFullscreenBtn');
     function toggleFullscreen() {
