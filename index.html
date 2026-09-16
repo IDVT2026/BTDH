@@ -2,89 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Interdepartmental Volleyball Tournament 2026</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%; height: 100%; overflow: hidden;
-    }
-    #iframeWrapper {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      width: 100vw; height: 100vh; overflow: hidden;
-    }
-    #launcherIframe {
-      display: block; border: none;
-      width: 100vw; height: 100vh;
-      min-width: 0;
-    }
-    .external-fullscreen {
-      position: fixed;
-      top: 8px; right: 8px;
-      background: rgba(0, 0, 0, 0);
-      backdrop-filter: blur(4px);
-      color: rgba(0, 0, 0, 0.58);
-      border: none; border-radius: 50%;
-      width: 36px; height: 36px;
-      font-size: 16px; cursor: pointer;
-      z-index: 9999;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .external-fullscreen:hover { background: #007bff; transform: scale(1.05); color: #fff; }
-    @media (max-width: 480px) {
-      .external-fullscreen { width: 32px; height: 32px; font-size: 14px; top: 4px; right: 4px; }
-    }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
   </style>
 </head>
 <body>
-  <div id="iframeWrapper">
-    <iframe id="launcherIframe"
-      src="https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec"
-      referrerpolicy="no-referrer"
-      allowfullscreen
-      width="100%" height="100%"
-      allow="fullscreen">
-    </iframe>
-  </div>
-  <button id="externalFullscreenBtn" class="external-fullscreen" title="Full screen">&#x2322;</button>
-
-  <script>
-    var BASE_URL = 'https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec';
-
-    var iframe = document.getElementById('launcherIframe');
-    var wrapper = document.getElementById('iframeWrapper');
-    var btn = document.getElementById('externalFullscreenBtn');
-
-    iframe.src = BASE_URL;
-
-    function setSize() {
-      var vw = window.innerWidth;
-      var vh = window.innerHeight;
-      wrapper.style.width = vw + 'px';
-      wrapper.style.height = vh + 'px';
-      iframe.style.width = vw + 'px';
-      iframe.style.height = vh + 'px';
-    }
-
-    iframe.addEventListener('load', setSize);
-    window.addEventListener('resize', setSize);
-    window.addEventListener('orientationchange', function() { setTimeout(setSize, 300); });
-    setSize();
-
-    btn.addEventListener('click', function() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(function(e) { console.warn(e); });
-      } else {
-        document.exitFullscreen();
-      }
-    });
-
-    document.addEventListener('fullscreenchange', function() {
-      btn.innerHTML = document.fullscreenElement ? '&#x2715;' : '&#x2322;';
-      btn.title = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
-      setTimeout(setSize, 150);
-    });
-  </script>
+  <iframe src="https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec"
+    allowfullscreen>
+  </iframe>
 </body>
 </html>
