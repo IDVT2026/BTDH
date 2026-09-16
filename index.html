@@ -5,10 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Interdepartmental Volleyball Tournament 2026</title>
   <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
+  </style>
 </head>
 <body>
-  <iframe src="https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec"
-    allowfullscreen>
+  <iframe id="launcherIframe"
+    src="https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec"
+    referrerpolicy="no-referrer"
+    allowfullscreen
+    allow="fullscreen">
   </iframe>
+
+  <script>
+    var iframe = document.getElementById('launcherIframe');
+
+    function setExactSize() {
+      iframe.style.width = window.innerWidth + 'px';
+      iframe.style.height = window.innerHeight + 'px';
+    }
+
+    iframe.addEventListener('load', setExactSize);
+    window.addEventListener('resize', setExactSize);
+    window.addEventListener('orientationchange', function() { setTimeout(setExactSize, 300); });
+    setExactSize();
+  </script>
 </body>
 </html>
