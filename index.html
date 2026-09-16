@@ -2,34 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Interdepartmental Volleyball Tournament 2026</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100vw; height: 100%; overflow: hidden; overflow-x: hidden; }
-    iframe {
-      width: 100%; height: 100%; min-width: 0; max-width: 100%;
+    html, body {
+      width: 100vw; height: 100%; overflow: hidden; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    #iframeWrapper {
+      position: relative; width: 100vw; height: 100vh;
+      overflow: hidden;
+    }
+    #launcherIframe {
+      position: absolute; top: 0; left: 0;
+      min-width: 0; max-width: 100%;
       display: block; border: none;
-      contain: layout style paint;
       transform-origin: top left;
+      transition: transform 0.15s ease;
     }
     .external-fullscreen {
       position: fixed;
-      top: 8px;
-      right: 8px;
+      top: 8px; right: 8px;
       background: rgba(0, 0, 0, 0);
       backdrop-filter: blur(4px);
       color: rgba(0, 0, 0, 0.58);
-      border: none;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      font-size: 16px;
-      cursor: pointer;
+      border: none; border-radius: 50%;
+      width: 36px; height: 36px;
+      font-size: 16px; cursor: pointer;
       z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       transition: all 0.2s ease;
     }
     .external-fullscreen:hover { background: #007bff; transform: scale(1.05); color: #fff; }
@@ -39,36 +41,93 @@
   </style>
 </head>
 <body>
-  <iframe id="launcherIframe"
-    src="https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec"
-    referrerpolicy="no-referrer"
-    allowfullscreen
-    allow="fullscreen">
-  </iframe>
+  <div id="iframeWrapper">
+    <iframe id="launcherIframe"
+      src="https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec"
+      referrerpolicy="no-referrer"
+      allowfullscreen
+      allow="fullscreen">
+    </iframe>
+  </div>
   <button id="externalFullscreenBtn" class="external-fullscreen" title="Full screen">&#x2322;</button>
 
   <script>
-    var baseUrl = 'https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec';
-    var iframe = document.getElementById('launcherIframe');
-    iframe.src = baseUrl;
+    var BASE_URL = 'https://script.google.com/macros/s/AKfycbyGOoaOwPd7ZSmQM4xt_c2QbyFu73wydTm3uk3pN1ACBMZ4KZ1LYiCyjX6CwkKsR7xm/exec';
 
+    var iframe = document.getElementById('launcherIframe');
+    var wrapper = document.getElementById('iframeWrapper');
     var btn = document.getElementById('externalFullscreenBtn');
-    function toggleFullscreen() {
+
+    iframe.src = BASE_URL;
+
+    /* --- Scale-to-fit: forces iframe content to respect device viewport --- */
+    function fitIframe() {
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      /* Design width = the width at which the inner app looks correct.
+         Set to viewport so inner page receives exact device width. */
+      var designW = vw;
+      var designH = vh;
+
+      iframe.style.width = designW + 'px';
+      iframe.style.height = designH + 'px';
+      iframe.style.transform = 'scale(1)';
+      wrapper.style.width = vw + 'px';
+      wrapper.style.height = vh + 'px';
+      wrapper.style.position = 'relative';
+    }
+
+    /* --- Fallback: scale iframe down on narrow screens --- */
+    function scaleIframeForMobile() {
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      /* Reference width where content renders naturally */
+      var refWidth = 768;
+
+      if (vw < refWidth) {
+        var scale = vw / refWidth;
+        iframe.style.width = refWidth + 'px';
+        iframe.style.height = (vh / scale) + 'px';
+        iframe.style.transform = 'scale(' + scale + ')';
+        wrapper.style.width = vw + 'px';
+        wrapper.style.height = vh + 'px';
+      } else {
+        fitIframe();
+      }
+    }
+
+    /* Use scale-iframe approach for all mobile sizes to guarantee fit */
+    function updateLayout() {
+      scaleIframeForMobile();
+    }
+
+    /* Initial setup after iframe loads */
+    iframe.addEventListener('load', function() {
+      updateLayout();
+    });
+    /* Also run immediately in case load already fired */
+    setTimeout(updateLayout, 300);
+    setTimeout(updateLayout, 1000);
+
+    window.addEventListener('resize', updateLayout);
+    window.addEventListener('orientationchange', function() {
+      setTimeout(updateLayout, 200);
+    });
+
+    /* --- Fullscreen --- */
+    btn.addEventListener('click', function() {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(function(e) { console.warn(e); });
       } else {
         document.exitFullscreen();
       }
-    }
-    btn.addEventListener('click', toggleFullscreen);
+    });
 
     document.addEventListener('fullscreenchange', function() {
       btn.innerHTML = document.fullscreenElement ? '&#x2715;' : '&#x2322;';
       btn.title = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
-    });
-
-    window.addEventListener('resize', function() {
-      iframe.style.transform = '';
+      /* Re-apply layout after entering/exiting fullscreen */
+      setTimeout(updateLayout, 150);
     });
   </script>
 </body>
