@@ -41,25 +41,24 @@
     #iframeWrapper {
       position: absolute; top: 0; left: 0;
       width: 100vw; height: 100vh;
-      /* FIX (overflow regression): don't hard-clip horizontally. If sizing
-         is ever off by a few px (e.g. a scrollbar-width rounding quirk),
-         this lets content scroll into view instead of disappearing behind
-         overflow:hidden. This is the "containment strategy that doesn't
-         rely on parent-level hiding" fallback — normally invisible since
-         correct sizing (below) means it's never actually needed. */
+      /* Safety net, not the fix: if the attribute-width trick below is
+         ever off by a rounding pixel on some browser, this lets that
+         sliver scroll into view instead of being invisibly clipped. */
       overflow-x: auto;
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
-      /* Hints the compositor that this layer may be resized, so the
-         (now rare, real-resize-only) size changes are cheap. */
-      will-change: transform;
     }
     #launcherIframe {
       position: absolute; top: 0; left: 0;
       display: block; border: none;
-      width: 100%; height: 100%;
-      /* No transform anywhere — see script comment for why we don't use
-         one, and why that's actually the fix for the "locked" zoom feel. */
+      /* Deliberately NO `transform` here. A CSS transform:scale() on a
+         heavy, actively-polling cross-origin iframe is a plausible cause
+         of the original crash on its own: native pinch-zoom forces
+         WebKit to re-rasterize transformed layers to stay crisp at the
+         new zoom level, independent of any JS. Avoiding transform
+         entirely means there's nothing for the browser to re-rasterize —
+         zoom just magnifies the whole already-correctly-sized page as
+         one flat bitmap, launcher and app together, with no seam. */
     }
   </style>
 </head>
@@ -82,33 +81,34 @@
     var wrapper = document.getElementById('iframeWrapper');
 
     /*
-     * FIX (this round — overflow + "locked zoom" regression):
-     * The previous version sized the iframe off `window.visualViewport`,
-     * which shrinks as the user pinch-zooms IN (it reports the currently
-     * *visible* slice of the page, not the page's layout size). That made
-     * every zoom tick shrink the iframe's real CSS box, which (a) pushed
-     * the app's own min-widths/touch-target floors past the available
-     * space, causing horizontal overflow, and (b) fought the browser's
-     * native, compositor-only pinch-zoom by forcing a real DOM relayout
-     * mid-gesture — which is what produced the "independently zooming /
-     * locked" feel.
+     * FIX (this round — oversized/overflowing content + zoom gap):
+     * Setting only the iframe's CSS width/height (previous version) sizes
+     * its box on THIS page, but doesn't reliably tell the framed page
+     * inside it what its own viewport width is — many mobile browsers
+     * fall back to assuming framed content wants a ~980px "desktop"
+     * viewport regardless of the CSS box size, which is why Index.html's
+     * clamp()-based responsive CSS was rendering oversized, as if it had
+     * 980px to work with, then getting crammed into (and overflowing) a
+     * much narrower real box.
      *
-     * The correct source is `window.innerWidth`/`innerHeight` — the
-     * LAYOUT viewport, not the visual one. The layout viewport does not
-     * change during pinch-zoom (only real events change it: rotation,
-     * address-bar show/hide, actual window resize). Sizing off it means:
-     *   - the iframe's box never changes size just because the user
-     *     zoomed, so there's nothing to overflow;
-     *   - zoom is handled 100% natively by the browser's own compositor,
-     *     which already magnifies the launcher shell and the iframe
-     *     together, in sync, with full hardware acceleration — because
-     *     neither one is being touched by JS during the gesture.
-     * In other words: the fix for "make zoom smooth and in sync" is to
-     * make this code invisible to zoom entirely, not to add custom
-     * transform/easing logic that tries to reproduce what the browser
-     * already does for free.
+     * The fix is to set the iframe's HTML width/height ATTRIBUTES (not
+     * just CSS style) to the real device viewport size. Several mobile
+     * engines use these attributes, not just the CSS box, to determine
+     * the nested browsing context's actual layout viewport — so the
+     * child page correctly sees itself as e.g. 390px wide instead of 980.
+     *
+     * This is deliberately NOT the fixed-980-canvas + transform:scale()
+     * approach from the very first version. That fixed sizing too, but a
+     * CSS transform on a large cross-origin iframe is itself a plausible,
+     * JS-independent cause of the original crash (native pinch-zoom
+     * forces WebKit to re-rasterize transformed layers). This version
+     * uses no transform anywhere, so there's nothing for zoom to
+     * re-rasterize, and nothing for the launcher and the app content to
+     * visually disagree about when the page is magnified.
      */
     function getViewportSize() {
+      // Layout viewport — stable across pinch-zoom (only changes on real
+      // rotation, address-bar show/hide, or an actual window resize).
       return { w: window.innerWidth, h: window.innerHeight };
     }
 
@@ -117,14 +117,18 @@
 
     function sizeIframe() {
       var size = getViewportSize();
-      // No-op if nothing real changed. Because we're reading the layout
-      // viewport, this also means: no-op during pinch-zoom, since zoom
-      // never changes these values in the first place.
       if (size.w === lastSizedW && size.h === lastSizedH) return;
       lastSizedW = size.w;
       lastSizedH = size.h;
+
       wrapper.style.width = size.w + 'px';
       wrapper.style.height = size.h + 'px';
+
+      // Both the attribute (tells the nested page its real viewport) and
+      // the matching CSS size (lays it out correctly on this page) —
+      // kept in sync, set once per genuine size change, never during zoom.
+      iframe.setAttribute('width', size.w);
+      iframe.setAttribute('height', size.h);
       iframe.style.width = size.w + 'px';
       iframe.style.height = size.h + 'px';
     }
@@ -135,9 +139,10 @@
       iframe.src = BASE_URL;
     }
 
-    // Pre-size while loading screen is visible
+    // Size (including the width/height attributes) BEFORE the iframe's
+    // src is ever set, so the child page's very first paint already sees
+    // the correct real viewport — no flash of oversized content.
     sizeIframe();
-    // Show iframe after 1.5 seconds
     setTimeout(showIframe, 1500);
 
     iframe.addEventListener('load', function() {
@@ -153,9 +158,6 @@
       resizeTimer = setTimeout(sizeIframe, 200);
     }
 
-    // Plain `resize` is fine here (no visualViewport needed) — because
-    // sizeIframe() reads the zoom-stable layout viewport, a spurious fire
-    // during zoom just re-reads the same numbers and no-ops above.
     window.addEventListener('resize', scheduleResize);
     window.addEventListener('orientationchange', function () {
       setTimeout(sizeIframe, 400);
