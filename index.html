@@ -41,15 +41,25 @@
     #iframeWrapper {
       position: absolute; top: 0; left: 0;
       width: 100vw; height: 100vh;
-      overflow: hidden;
+      /* FIX (overflow regression): don't hard-clip horizontally. If sizing
+         is ever off by a few px (e.g. a scrollbar-width rounding quirk),
+         this lets content scroll into view instead of disappearing behind
+         overflow:hidden. This is the "containment strategy that doesn't
+         rely on parent-level hiding" fallback — normally invisible since
+         correct sizing (below) means it's never actually needed. */
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      /* Hints the compositor that this layer may be resized, so the
+         (now rare, real-resize-only) size changes are cheap. */
+      will-change: transform;
     }
     #launcherIframe {
       position: absolute; top: 0; left: 0;
       display: block; border: none;
       width: 100%; height: 100%;
-      /* FIX: no more `transform: scale()` here — see the comment in the
-         script below for why the old transform-based scaling was the
-         cause of the mobile zoom -> reload -> crash bug. */
+      /* No transform anywhere — see script comment for why we don't use
+         one, and why that's actually the fix for the "locked" zoom feel. */
     }
   </style>
 </head>
@@ -71,10 +81,34 @@
     var loading = document.getElementById('loadingContent');
     var wrapper = document.getElementById('iframeWrapper');
 
+    /*
+     * FIX (this round — overflow + "locked zoom" regression):
+     * The previous version sized the iframe off `window.visualViewport`,
+     * which shrinks as the user pinch-zooms IN (it reports the currently
+     * *visible* slice of the page, not the page's layout size). That made
+     * every zoom tick shrink the iframe's real CSS box, which (a) pushed
+     * the app's own min-widths/touch-target floors past the available
+     * space, causing horizontal overflow, and (b) fought the browser's
+     * native, compositor-only pinch-zoom by forcing a real DOM relayout
+     * mid-gesture — which is what produced the "independently zooming /
+     * locked" feel.
+     *
+     * The correct source is `window.innerWidth`/`innerHeight` — the
+     * LAYOUT viewport, not the visual one. The layout viewport does not
+     * change during pinch-zoom (only real events change it: rotation,
+     * address-bar show/hide, actual window resize). Sizing off it means:
+     *   - the iframe's box never changes size just because the user
+     *     zoomed, so there's nothing to overflow;
+     *   - zoom is handled 100% natively by the browser's own compositor,
+     *     which already magnifies the launcher shell and the iframe
+     *     together, in sync, with full hardware acceleration — because
+     *     neither one is being touched by JS during the gesture.
+     * In other words: the fix for "make zoom smooth and in sync" is to
+     * make this code invisible to zoom entirely, not to add custom
+     * transform/easing logic that tries to reproduce what the browser
+     * already does for free.
+     */
     function getViewportSize() {
-      if (window.visualViewport) {
-        return { w: window.visualViewport.width, h: window.visualViewport.height };
-      }
       return { w: window.innerWidth, h: window.innerHeight };
     }
 
@@ -83,6 +117,9 @@
 
     function sizeIframe() {
       var size = getViewportSize();
+      // No-op if nothing real changed. Because we're reading the layout
+      // viewport, this also means: no-op during pinch-zoom, since zoom
+      // never changes these values in the first place.
       if (size.w === lastSizedW && size.h === lastSizedH) return;
       lastSizedW = size.w;
       lastSizedH = size.h;
@@ -116,12 +153,10 @@
       resizeTimer = setTimeout(sizeIframe, 200);
     }
 
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', scheduleResize);
-    } else {
-      // Fallback for older browsers without visualViewport support.
-      window.addEventListener('resize', scheduleResize);
-    }
+    // Plain `resize` is fine here (no visualViewport needed) — because
+    // sizeIframe() reads the zoom-stable layout viewport, a spurious fire
+    // during zoom just re-reads the same numbers and no-ops above.
+    window.addEventListener('resize', scheduleResize);
     window.addEventListener('orientationchange', function () {
       setTimeout(sizeIframe, 400);
     });
