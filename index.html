@@ -3,36 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Tournament Live Score</title>
-  <meta name="description" content="Interdepartmental Volleyball Tournament 2026">
+  <title>Application Portal</title>
+  <meta name="description" content="Seamless Mobile Responsive Web Application">
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
+    /* Hide scrollbars across all browsers while keeping screen fitted */
     html, body {
       width: 100%;
       height: 100%;
       height: 100dvh;
-      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      overflow: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
       background-color: #0f172a;
       -webkit-font-smoothing: antialiased;
+    }
+    html::-webkit-scrollbar, body::-webkit-scrollbar, #frame-wrapper::-webkit-scrollbar, iframe::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
     }
     #frame-wrapper {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden;
+      overflow: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
       -webkit-overflow-scrolling: touch;
     }
     #app-frame {
       width: 100%;
       height: 100%;
       min-width: 100%;
-      border: none;
+      min-height: 100%;
+      border: 0 !important;
+      outline: none !important;
       display: block;
+      overflow: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
     }
     #loading-overlay {
       position: fixed;
@@ -65,33 +82,19 @@
 <body>
   <div id="loading-overlay">
     <div class="spinner"></div>
-    <div style="font-family: sans-serif; font-size: 13px;">Loading tournament live score...</div>
+    <div style="font-family: sans-serif; font-size: 13px;">Loading application...</div>
   </div>
 
   <div id="frame-wrapper">
     <iframe
       id="app-frame"
-      src="https://script.google.com/macros/s/AKfycbx-tCdoyyPYh5Sj1D81VsAqF0Sj2dvD4eGnS_sxHYRdI84_nk2mdg8J_xb5zT_d-iE4/exec"
+      src="https://script.google.com/macros/s/AKfycbwkEB2MCjupNzwk2WQ6qcF2c2jtkaoBMaexLX9ScAXYrKCy2YHOpSrzaRQM-gPYwJ9-/exec"
+      scrolling="no"
+      frameborder="0"
       allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; microphone; midi; payment"
       sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-downloads"
       onload="document.getElementById('loading-overlay').style.opacity = '0'; setTimeout(() => document.getElementById('loading-overlay').remove(), 350);"
     ></iframe>
   </div>
-
-  <script>
-    // Automatically forwards the exact mobile screen width into the Google Script
-    (function() {
-      try {
-        var iframe = document.getElementById('app-frame');
-        if (iframe) {
-          var base = iframe.src;
-          var width = Math.min(window.innerWidth || 390, screen.width || 390);
-          var u = new URL(base);
-          u.searchParams.set('embedWidth', String(Math.round(width)));
-          iframe.src = u.toString();
-        }
-      } catch (e) {}
-    })();
-  </script>
 </body>
 </html>
