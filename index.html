@@ -2,35 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
-  <title>Tournament Live Score</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Laundry Management System</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #f5f6f6;
-    }
-    body {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      min-width: 0;
-      height: 100vh;
-      height: 100dvh;
-      overflow: hidden;
-      background: #f5f6f6;
-    }
-    iframe {
-      display: block;
-      width: 100%;
-      max-width: 100%;
-      height: 100vh;
-      height: 100dvh;
-      border: none;
-      overflow: hidden;
-    }
+    body, html { width: 100%; height: 100%; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; }
     .external-fullscreen {
         position: fixed;
         top: 0px;
@@ -71,65 +48,20 @@
     allowfullscreen
     allow="fullscreen">
   </iframe>
-  <button id="externalFullscreenBtn" class="external-fullscreen" title="Full screen">[]</button>
+  <button id="externalFullscreenBtn" class="external-fullscreen" title="Full screen">⤢</button>
   <!-- Temporary overlay for first click -->
   <div id="firstClickOverlay" class="click-capture-overlay"></div>
 
   <script>
-    const baseUrl = 'https://script.google.com/macros/s/AKfycbyTquMNIHa2xeZqSfB99MEzTTob_fztmUMdThTGRLpRKsfX3935wr97HYT2b7kWaZgO/exec';
+    const baseUrl = 'https://script.google.com/macros/s/AKfycbzLPZpRtHGBJZhGVKuQPCxQYx5K0uxmgd-RcHqnsoOFUvz-oCQvt1qSNythOfJWy8Y/exec';
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     const iframe = document.getElementById('launcherIframe');
-
-    function getViewportWidth() {
-      return Math.max(1, Math.round(
-        (window.visualViewport && window.visualViewport.width) ||
-        document.documentElement.clientWidth ||
-        window.innerWidth ||
-        screen.width
-      ));
-    }
-
-    function buildEmbedUrl() {
-      const target = new URL(baseUrl);
-      const source = new URLSearchParams(window.location.search);
-      ['mode', 'view'].forEach((key) => {
-        if (source.has(key)) target.searchParams.set(key, source.get(key));
-      });
-      target.searchParams.set('embedded', '1');
-      target.searchParams.set('embedWidth', String(getViewportWidth()));
-      return target.toString();
-    }
-
-    let lastViewportWidth = 0;
-    let resizeTimer = 0;
-
-    function loadFrame() {
-      lastViewportWidth = getViewportWidth();
-      iframe.src = buildEmbedUrl();
-    }
-
-    function refreshFrameForViewport() {
-      const nextWidth = getViewportWidth();
-      if (Math.abs(nextWidth - lastViewportWidth) < 24) return;
-      window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(loadFrame, 250);
-    }
-
-    loadFrame();
-    window.addEventListener('resize', refreshFrameForViewport);
-    window.addEventListener('orientationchange', refreshFrameForViewport);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', refreshFrameForViewport);
-    }
+    iframe.src = isMobile ? baseUrl + '?mode=mobile' : baseUrl;
 
     const btn = document.getElementById('externalFullscreenBtn');
-    function enterFullscreen() {
-      if (!document.documentElement.requestFullscreen) return;
-      document.documentElement.requestFullscreen().catch(console.warn);
-    }
-
     function toggleFullscreen() {
       if (!document.fullscreenElement) {
-        enterFullscreen();
+        document.documentElement.requestFullscreen().catch(console.warn);
       } else {
         document.exitFullscreen();
       }
@@ -137,7 +69,7 @@
     btn.addEventListener('click', toggleFullscreen);
 
     document.addEventListener('fullscreenchange', () => {
-      btn.textContent = document.fullscreenElement ? 'x' : '[]';
+      btn.textContent = document.fullscreenElement ? '✕' : '⤢';
       btn.title = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
     });
 
@@ -147,14 +79,14 @@
       // Remove overlay immediately
       overlay.removeEventListener('click', onFirstClick);
       overlay.remove();
-      // Enter fullscreen when the browser supports it.
-      enterFullscreen();
+      // Enter full‑screen
+      document.documentElement.requestFullscreen().catch(console.warn);
     });
     // Also for touch devices
     overlay.addEventListener('touchstart', function onFirstTouch() {
       overlay.removeEventListener('touchstart', onFirstTouch);
       overlay.remove();
-      enterFullscreen();
+      document.documentElement.requestFullscreen().catch(console.warn);
     });
   </script>
 </body>
