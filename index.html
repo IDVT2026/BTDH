@@ -3,164 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Tournament Live Score</title>
+  <title>Laundry Management System</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    body {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      font-family: Inter, Segoe UI, Arial, sans-serif;
-      background: #153e35; color: #fff; gap: 16px;
+    body, html { width: 100%; height: 100%; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; }
+    .external-fullscreen {
+        position: fixed;
+        top: 0px;
+        right: 0px;
+        background: rgb(0 0 0 / 0%);
+        backdrop-filter: blur(4px);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        font-size: 10px;
+        cursor: pointer;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
     }
-    .spinner {
-      width: 48px; height: 48px;
-      border: 4px solid rgba(255,255,255,0.2);
-      border-top-color: #fff; border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .logo-icon {
-      width: 56px; height: 56px;
-      background: rgba(255,255,255,0.12);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
-    }
-    .logo-icon img { width: 36px; height: 36px; object-fit: contain; }
-    .logo-text {
-      font-size: 18px; font-weight: 700;
-      color: #fff; text-align: center;
-      letter-spacing: 0.5px; line-height: 1.3;
-    }
-    .logo-sub {
-      font-size: 13px; opacity: 0.6;
-      text-align: center;
-    }
-    p { font-size: 16px; opacity: 0.8; }
-    #iframeWrapper {
-      position: absolute; top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      /* Safety net, not the fix: if the attribute-width trick below is
-         ever off by a rounding pixel on some browser, this lets that
-         sliver scroll into view instead of being invisibly clipped. */
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-    }
-    #launcherIframe {
-      position: absolute; top: 0; left: 0;
-      display: block; border: none;
-      /* Deliberately NO `transform` here. A CSS transform:scale() on a
-         heavy, actively-polling cross-origin iframe is a plausible cause
-         of the original crash on its own: native pinch-zoom forces
-         WebKit to re-rasterize transformed layers to stay crisp at the
-         new zoom level, independent of any JS. Avoiding transform
-         entirely means there's nothing for the browser to re-rasterize —
-         zoom just magnifies the whole already-correctly-sized page as
-         one flat bitmap, launcher and app together, with no seam. */
+    .external-fullscreen:hover { background: #007bff; transform: scale(1.05); }
+    /* Temporary overlay to capture first click on iframe area */
+    .click-capture-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      z-index: 10000;
+      cursor: pointer;
     }
   </style>
 </head>
-<body id="loadingScreen">
-  <div id="loadingContent">
-    <div class="logo-icon"><img src="LOGO_BASE64_HERE" alt="Tournament Logo"></div>
-    <div class="logo-text">Interdepartmental<br>Volleyball Tournament</div>
-    <div class="logo-sub">2026</div>
-    <div class="spinner"></div>
-    <p>Loading Tournament Live Score...</p>
-  </div>
-  <div id="iframeWrapper" style="display:none;">
-    <iframe id="launcherIframe" referrerpolicy="no-referrer" allowfullscreen allow="fullscreen"></iframe>
-  </div>
+<body>
+  <iframe id="launcherIframe" 
+    src=""
+    referrerpolicy="no-referrer"
+    allowfullscreen
+    allow="fullscreen">
+  </iframe>
+  <button id="externalFullscreenBtn" class="external-fullscreen" title="Full screen">⤢</button>
+  <!-- Temporary overlay for first click -->
+  <div id="firstClickOverlay" class="click-capture-overlay"></div>
+
   <script>
-    var BASE_URL = 'https://script.google.com/macros/s/AKfycbylIgQXzgmM30cOgMdNseYWXxW5Onh_ENgksd0VYmGHBjjIBkQFWo4JTLUhWsnqP_03/exec';
+    const baseUrl = 'https://script.google.com/macros/s/AKfycbylIgQXzgmM30cOgMdNseYWXxW5Onh_ENgksd0VYmGHBjjIBkQFWo4JTLUhWsnqP_03/exec';
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+    const iframe = document.getElementById('launcherIframe');
+    iframe.src = isMobile ? baseUrl + '?mode=mobile' : baseUrl;
 
-    var iframe = document.getElementById('launcherIframe');
-    var loading = document.getElementById('loadingContent');
-    var wrapper = document.getElementById('iframeWrapper');
-
-    /*
-     * FIX (this round — oversized/overflowing content + zoom gap):
-     * Setting only the iframe's CSS width/height (previous version) sizes
-     * its box on THIS page, but doesn't reliably tell the framed page
-     * inside it what its own viewport width is — many mobile browsers
-     * fall back to assuming framed content wants a ~980px "desktop"
-     * viewport regardless of the CSS box size, which is why Index.html's
-     * clamp()-based responsive CSS was rendering oversized, as if it had
-     * 980px to work with, then getting crammed into (and overflowing) a
-     * much narrower real box.
-     *
-     * The fix is to set the iframe's HTML width/height ATTRIBUTES (not
-     * just CSS style) to the real device viewport size. Several mobile
-     * engines use these attributes, not just the CSS box, to determine
-     * the nested browsing context's actual layout viewport — so the
-     * child page correctly sees itself as e.g. 390px wide instead of 980.
-     *
-     * This is deliberately NOT the fixed-980-canvas + transform:scale()
-     * approach from the very first version. That fixed sizing too, but a
-     * CSS transform on a large cross-origin iframe is itself a plausible,
-     * JS-independent cause of the original crash (native pinch-zoom
-     * forces WebKit to re-rasterize transformed layers). This version
-     * uses no transform anywhere, so there's nothing for zoom to
-     * re-rasterize, and nothing for the launcher and the app content to
-     * visually disagree about when the page is magnified.
-     */
-    function getViewportSize() {
-      // Layout viewport — stable across pinch-zoom (only changes on real
-      // rotation, address-bar show/hide, or an actual window resize).
-      return { w: window.innerWidth, h: window.innerHeight };
-    }
-
-    var lastSizedW = 0;
-    var lastSizedH = 0;
-
-    function sizeIframe() {
-      var size = getViewportSize();
-      if (size.w === lastSizedW && size.h === lastSizedH) return;
-      lastSizedW = size.w;
-      lastSizedH = size.h;
-
-      wrapper.style.width = size.w + 'px';
-      wrapper.style.height = size.h + 'px';
-
-      // Both the attribute (tells the nested page its real viewport) and
-      // the matching CSS size (lays it out correctly on this page) —
-      // kept in sync, set once per genuine size change, never during zoom.
-      iframe.setAttribute('width', size.w);
-      iframe.setAttribute('height', size.h);
-      iframe.style.width = size.w + 'px';
-      iframe.style.height = size.h + 'px';
-    }
-
-    function showIframe() {
-      loading.style.display = 'none';
-      wrapper.style.display = 'block';
-      iframe.src = BASE_URL;
-    }
-
-    // Size (including the width/height attributes) BEFORE the iframe's
-    // src is ever set, so the child page's very first paint already sees
-    // the correct real viewport — no flash of oversized content.
-    sizeIframe();
-    setTimeout(showIframe, 1500);
-
-    iframe.addEventListener('load', function() {
-      if (loading.style.display !== 'none') {
-        loading.style.display = 'none';
-        wrapper.style.display = 'block';
+    const btn = document.getElementById('externalFullscreenBtn');
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(console.warn);
+      } else {
+        document.exitFullscreen();
       }
+    }
+    btn.addEventListener('click', toggleFullscreen);
+
+    document.addEventListener('fullscreenchange', () => {
+      btn.textContent = document.fullscreenElement ? '✕' : '⤢';
+      btn.title = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
     });
 
-    var resizeTimer;
-    function scheduleResize() {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(sizeIframe, 200);
-    }
-
-    window.addEventListener('resize', scheduleResize);
-    window.addEventListener('orientationchange', function () {
-      setTimeout(sizeIframe, 400);
+    // --- First click anywhere (captured by overlay) ---
+    const overlay = document.getElementById('firstClickOverlay');
+    overlay.addEventListener('click', function onFirstClick() {
+      // Remove overlay immediately
+      overlay.removeEventListener('click', onFirstClick);
+      overlay.remove();
+      // Enter full‑screen
+      document.documentElement.requestFullscreen().catch(console.warn);
+    });
+    // Also for touch devices
+    overlay.addEventListener('touchstart', function onFirstTouch() {
+      overlay.removeEventListener('touchstart', onFirstTouch);
+      overlay.remove();
+      document.documentElement.requestFullscreen().catch(console.warn);
     });
   </script>
 </body>
