@@ -46,7 +46,10 @@
     #launcherIframe {
       position: absolute; top: 0; left: 0;
       display: block; border: none;
-      transform-origin: top left;
+      width: 100%; height: 100%;
+      /* FIX: no more `transform: scale()` here — see the comment in the
+         script below for why the old transform-based scaling was the
+         cause of the mobile zoom -> reload -> crash bug. */
     }
   </style>
 </head>
@@ -68,30 +71,25 @@
     var loading = document.getElementById('loadingContent');
     var wrapper = document.getElementById('iframeWrapper');
 
-    /*
-     * Mobile browsers assign ~980px layout viewport to cross-origin iframes.
-     * We render the iframe at 980px (the width the browser will assign)
-     * then scale it down proportionally to fit the actual screen width.
-     * This ensures the content fills the screen without overflowing.
-     */
-    function sizeIframe() {
-      var vw = window.innerWidth;
-      var vh = window.innerHeight;
-      var DESKTOP_WIDTH = 980;
-
-      wrapper.style.width = vw + 'px';
-      wrapper.style.height = vh + 'px';
-
-      if (vw < DESKTOP_WIDTH) {
-        var scale = vw / DESKTOP_WIDTH;
-        iframe.style.width = DESKTOP_WIDTH + 'px';
-        iframe.style.height = (vh / scale) + 'px';
-        iframe.style.transform = 'scale(' + scale + ')';
-      } else {
-        iframe.style.width = vw + 'px';
-        iframe.style.height = vh + 'px';
-        iframe.style.transform = '';
+    function getViewportSize() {
+      if (window.visualViewport) {
+        return { w: window.visualViewport.width, h: window.visualViewport.height };
       }
+      return { w: window.innerWidth, h: window.innerHeight };
+    }
+
+    var lastSizedW = 0;
+    var lastSizedH = 0;
+
+    function sizeIframe() {
+      var size = getViewportSize();
+      if (size.w === lastSizedW && size.h === lastSizedH) return;
+      lastSizedW = size.w;
+      lastSizedH = size.h;
+      wrapper.style.width = size.w + 'px';
+      wrapper.style.height = size.h + 'px';
+      iframe.style.width = size.w + 'px';
+      iframe.style.height = size.h + 'px';
     }
 
     function showIframe() {
@@ -112,28 +110,20 @@
       }
     });
 
-    var lastScreenW = screen.width;
-    var lastScreenH = screen.height;
     var resizeTimer;
-
-    window.addEventListener('resize', function() {
+    function scheduleResize() {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function() {
-        if (screen.width !== lastScreenW || screen.height !== lastScreenH) {
-          lastScreenW = screen.width;
-          lastScreenH = screen.height;
-          sizeIframe();
-        }
-      }, 250);
-    });
-    window.addEventListener('orientationchange', function() {
-      setTimeout(function() {
-        if (screen.width !== lastScreenW || screen.height !== lastScreenH) {
-          lastScreenW = screen.width;
-          lastScreenH = screen.height;
-          sizeIframe();
-        }
-      }, 400);
+      resizeTimer = setTimeout(sizeIframe, 200);
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', scheduleResize);
+    } else {
+      // Fallback for older browsers without visualViewport support.
+      window.addEventListener('resize', scheduleResize);
+    }
+    window.addEventListener('orientationchange', function () {
+      setTimeout(sizeIframe, 400);
     });
   </script>
 </body>
