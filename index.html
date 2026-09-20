@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Tournament Live Score</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -112,14 +112,30 @@
       }
     });
 
+    var lastVw = window.innerWidth;
+    var lastVh = window.innerHeight;
+    var resizeTimer;
+
     window.addEventListener('resize', function() {
-      setTimeout(sizeIframe, 100);
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() {
+        var nvw = window.innerWidth;
+        var nvh = window.innerHeight;
+        if (nvw !== lastVw || nvh !== lastVh) {
+          lastVw = nvw;
+          lastVh = nvh;
+          sizeIframe();
+        }
+      }, 250);
     });
     window.addEventListener('orientationchange', function() {
       setTimeout(function() {
-        sizeIframe();
-        if (wrapper.style.display === 'block') {
-          showIframe();
+        var nvw = window.innerWidth;
+        var nvh = window.innerHeight;
+        if (nvw !== lastVw || nvh !== lastVh) {
+          lastVw = nvw;
+          lastVh = nvh;
+          sizeIframe();
         }
       }, 400);
     });
