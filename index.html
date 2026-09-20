@@ -56,7 +56,11 @@
     const baseUrl = 'https://script.google.com/macros/s/AKfycbwnA00mBE-6O9dd71A77lwpT_sqwVboTTlKlVFyzKFo6EPh_SrKcDyFmJyGL69v4Zfw/exec';
     const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     const iframe = document.getElementById('launcherIframe');
-    iframe.src = isMobile ? baseUrl + '?mode=mobile' : baseUrl;
+    if (isMobile) {
+      window.location.replace(baseUrl + '?mode=mobile');
+    } else {
+      iframe.src = baseUrl;
+    }
 
     const btn = document.getElementById('externalFullscreenBtn');
     function toggleFullscreen() {
