@@ -112,29 +112,25 @@
       }
     });
 
-    var lastVw = window.innerWidth;
-    var lastVh = window.innerHeight;
+    var lastScreenW = screen.width;
+    var lastScreenH = screen.height;
     var resizeTimer;
 
     window.addEventListener('resize', function() {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function() {
-        var nvw = window.innerWidth;
-        var nvh = window.innerHeight;
-        if (nvw !== lastVw || nvh !== lastVh) {
-          lastVw = nvw;
-          lastVh = nvh;
+        if (screen.width !== lastScreenW || screen.height !== lastScreenH) {
+          lastScreenW = screen.width;
+          lastScreenH = screen.height;
           sizeIframe();
         }
       }, 250);
     });
     window.addEventListener('orientationchange', function() {
       setTimeout(function() {
-        var nvw = window.innerWidth;
-        var nvh = window.innerHeight;
-        if (nvw !== lastVw || nvh !== lastVh) {
-          lastVw = nvw;
-          lastVh = nvh;
+        if (screen.width !== lastScreenW || screen.height !== lastScreenH) {
+          lastScreenW = screen.width;
+          lastScreenH = screen.height;
           sizeIframe();
         }
       }, 400);
